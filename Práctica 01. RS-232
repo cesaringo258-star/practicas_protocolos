@@ -1,1 +1,38 @@
-PRUEBA 1
+//PUNTO 1 — 115200, 8 bits, sin paridad, 2 stop//
+
+#include <msp430.h>
+
+int main(void)
+{
+  WDTCTL = WDTPW + WDTHOLD;
+
+  P3SEL |= BIT3+BIT4;
+  UCA0CTL1 |= UCSWRST;
+  UCA0CTL1 |= UCSSEL_2;
+  UCA0CTL0 |= UCSPB;                 // 2 bits de stop
+
+  UCA0BR0 = 8;
+  UCA0BR1 = 0;
+  UCA0MCTL = UCBRS_6 + UCBRF_0;
+
+  UCA0CTL1 &= ~UCSWRST;
+  UCA0IE |= UCRXIE;
+
+  __bis_SR_register(LPM0_bits + GIE);
+  __no_operation();
+}
+
+#pragma vector=USCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+{
+  switch(__even_in_range(UCA0IV,4))
+  {
+  case 0: break;
+  case 2:
+    while (!(UCA0IFG&UCTXIFG));
+    UCA0TXBUF = UCA0RXBUF;
+    break;
+  case 4: break;
+  default: break;
+  }
+}
